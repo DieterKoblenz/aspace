@@ -713,7 +713,7 @@ int do_set_lrs (int active, dbref enactor)
 			} else {
 				sdb[n].sensor.lrs_active = 1;
 				sdb[n].sensor.version = 1;
-				console_message(n, "helm science tactical",
+				notify(enactor,
 					ansi_cmd(enactor, "Long-range sensors online"));
 				return 1;
 			}
@@ -723,7 +723,7 @@ int do_set_lrs (int active, dbref enactor)
 			} else {
 				sdb[n].sensor.lrs_active = 0;
 				sdb[n].sensor.version = 1;
-				console_message(n, "helm science tactical",
+				notify(enactor,
 					ansi_cmd(enactor, "Long-range sensors offline"));
 				return 1;
 			}
