@@ -27,8 +27,8 @@ void do_console_notify (int x, dbref parent1, dbref parent2, dbref parent3, cons
 				if ((parent == parent1) ||
 				  (parent == parent2) ||
 				  (parent == parent3) ||
-				  (parent == console_monitor) ||
-				  (parent == console_fighter)) {
+				  (parent == aspace_config.monitor) ||
+				  (parent == aspace_config.fighter)) {
 					b = atr_get(console, CONSOLE_USER_ATTR_NAME);
 					if (b != NULL) {
 						user = parse_dbref(atr_value(b));
@@ -102,7 +102,7 @@ void do_ship_notify(int x, const char *msg)
 				room = parse_dbref(split_token(&pq, ' '));
 				if (Zone(room) == sdb[x].object) {
 					if (Typeof(room) == TYPE_ROOM) {
-						notify_except(db[room].contents, sdb[x].object,NOTHING, msg, 0);
+						notify_except2(sdb[x].object, room, NOTHING, NOTHING, msg,0);
 					}
 				}
 			}
@@ -143,8 +143,8 @@ void do_space_notify_one (int x, dbref parent1, dbref parent2, dbref parent3, co
 												if ((parent == parent1) ||
 												  (parent == parent2) ||
 												  (parent == parent3) ||
-												  (parent == console_monitor) ||
-												  (parent == console_fighter)) {
+												  (parent == aspace_config.monitor) ||
+												  (parent == aspace_config.fighter)) {
 													b = atr_get(console, CONSOLE_USER_ATTR_NAME);
 													if (b != NULL) {
 														user = parse_dbref(atr_value(b));
@@ -204,8 +204,8 @@ void do_space_notify_two (int n1, int n2, dbref parent1, dbref parent2, dbref pa
 												if ((parent == parent1) ||
 												  (parent == parent2) ||
 												  (parent == parent3) ||
-												  (parent == console_monitor) ||
-												  (parent == console_fighter)) {
+												  (parent == aspace_config.monitor) ||
+												  (parent == aspace_config.fighter)) {
 													b = atr_get(console, CONSOLE_USER_ATTR_NAME);
 													if (b != NULL) {
 														user = parse_dbref(atr_value(b));

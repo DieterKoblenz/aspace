@@ -306,12 +306,23 @@ typedef char array_t[MAX_LIST][MAX_NAME+1];
 
 /* ------------------------------------------------------------------------ */
 
-struct spaceconfig {
-	double cochrane_rate;
-};
+typedef struct _spaceconfig {
+	char cochrane[20]; // Yes this is weird. But @config doesn't support floating point numbers (yet).
+	dbref security;
+	dbref helm;
+	dbref engineering;
+	dbref operation;
+	dbref science;
+	dbref damage;
+	dbref communication;
+	dbref tactical;
+	dbref transporter;
+	dbref monitor;
+	dbref fighter;
+	int nebula; // 0 = ASpace default, 1 = CustomNebs + aspace (default), 2 = Custom only
+} ASPACE_CONFIG;
 
-typedef struct spaceconfig SPACETAB;
-extern SPACETAB configstruct;
+ASPACE_CONFIG aspace_config;
 
 struct aspace_empire_info {
 	const char* name;
@@ -322,13 +333,8 @@ struct aspace_empire_info {
 };
 
 intmap *border_map;
+intmap *nebula_map;
 
-HASHTAB aspace_consoles;
-
-typedef struct _space_consoles {
-	char *console_name;
-	dbref console_dbref;
-} space_consoles;
 
 typedef struct _space_border_info_ {
 	char* border_id;
@@ -653,19 +659,21 @@ struct comms_database_t {
 
 /* ------------------------------------------------------------------------ */
 
-/* from space_conf.c */
-extern struct spaceconfig get_space_config(char *filename);
-extern void loadSpaceConfig();
+/* from space_nebula.c */
+extern void free_nebulainfo(void *ptr);
+extern void addNewNebula(dbref executor, int index, const char* name, double radius, double x, double y, double z, char *buff, char **bp);
+extern void deleteNebula(dbref executor, int index, char *buff, char **bp);
+extern void list_nebulae(char *buff, char **bp);
 
 /* from space_output.c - Raw outputs */
 extern char* output_shields_raw();
 
 /* from space_border.c - not everything yet */
 extern void free_borderinfo(void *ptr);
-extern void addNewBorder(int border_number, const char* name, double radius, double x, double y, double z, char *buff, char **bp);
-extern void deleteBorder(int border, char *buff, char **bp);
+extern void addNewBorder(dbref executor, int border_number, const char* name, double radius, double x, double y, double z, char *buff, char **bp);
+extern void deleteBorder(dbref executor, int border, char *buff, char **bp);
 extern void list_borders(char *buff, char **bp);
-extern void edit_border(int border_id, const char* setting, const char* new_value, char *buff, char **bp);
+extern void edit_border(dbref executor, int border_id, const char* setting, const char* new_value, char *buff, char **bp);
 extern int get_empire_id (int ship);
 
 /* from space_crypt.c */
@@ -684,17 +692,6 @@ extern int n;
 extern int max_space_objects;
 extern int max_comms_objects;
 
-extern dbref console_security;
-extern dbref console_helm;
-extern dbref console_engineering;
-extern dbref console_operation;
-extern dbref console_science;
-extern dbref console_damage;
-extern dbref console_communication;
-extern dbref console_tactical;
-extern dbref console_transporter;
-extern dbref console_monitor;
-extern dbref console_fighter;
 extern const char *shield_name[];
 extern const char *cloak_name[];
 extern const char *type_name[];
@@ -706,6 +703,7 @@ extern const char *damage_name[];
 extern double repair_mult[];
 
 /* from space_main.c */
+extern void setupAspaceConfig();
 extern void initSpace();
 extern void dump_space(dbref);
 extern void console_message(int x, char *consoles, char *msg);
@@ -728,6 +726,7 @@ extern char *ansi_red_scale (double a, int max);
 extern char *ansi_stoplight_scale (double a, int max);
 
 /* from space_utils.c */
+extern int dbref2sdb(dbref x);
 extern int GoodSDB (int x);
 extern double ly2pc (double dist);
 extern double pc2ly (double dist);
@@ -814,6 +813,8 @@ extern void report_shield_power (void);
 extern void report_sensor_power (void);
 
 /* from space_alert.c */
+extern void alert_enter_nebula (int x);
+extern void alert_exit_nebula (int x);
 extern void alert_main_balance (int x);
 extern void alert_aux_balance (int x);
 extern void alert_batt_balance (int x);

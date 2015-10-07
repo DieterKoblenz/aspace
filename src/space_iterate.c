@@ -653,10 +653,16 @@ void up_quadrant (void)
 
 void up_visibility (void)
 {
+	double vis = xyz2vis(sdb[n].coords.x, sdb[n].coords.y, sdb[n].coords.z);
+	
 	if (sdb[n].status.docked || sdb[n].status.landed) {
 		sdb[n].sensor.visibility = 1.0;
 	} else {
-		sdb[n].sensor.visibility = xyz2vis(sdb[n].coords.x, sdb[n].coords.y, sdb[n].coords.z);
+		if (sdb[n].sensor.visibility == 1.0 && vis < 1.0)
+			alert_enter_nebula(n);
+		else if (sdb[n].sensor.visibility < 1.0 && vis == 1.0) 
+			alert_exit_nebula(n);
+		sdb[n].sensor.visibility = vis;
 	}
 	return;
 }
@@ -798,12 +804,16 @@ void up_roll_io (void)
 void up_vectors (void)
 {
 	double d2r = PI / 180.0;
-	double sy = sin(sdb[n].course.yaw_out * d2r);
+	double sy = sin(-sdb[n].course.yaw_out * d2r); 
 	double cy = cos(sdb[n].course.yaw_out * d2r);
 	double sp = sin(sdb[n].course.pitch_out * d2r);
 	double cp = cos(sdb[n].course.pitch_out * d2r);
 	double sr = sin(sdb[n].course.roll_out * d2r);
 	double cr = cos(sdb[n].course.roll_out * d2r);
+
+/* Original rotation matrix. Has issues with 90 degree angles 
+// Working on a solution still
+*/
 
 	sdb[n].course.d[0][0] = cy * cp;
 	sdb[n].course.d[0][1] = sy * cp;

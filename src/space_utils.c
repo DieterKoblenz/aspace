@@ -142,17 +142,31 @@ double xyz2vis (double x, double y, double z)
 	double dy = fabs(py - (round(py / 100.0) * 100.0));
 	double dz = fabs(pz - (round(pz / 100.0) * 100.0));
 	double vis;
-
-	vis = 1.1 - (1.0 / (1.0 + dx * dx + dy * dy + dz * dz));
-
-	if (vis < 0.0) {
-		return 0.0;
-	} else if (vis > 1.0) {
-		return 1.0;
-	} else
-		return vis;
+	register int i = 0;
+	aspace_borders *nebula;
+	double range;
+		
+	if (aspace_config.nebula >= 1 && im_count(nebula_map) > 0) {
+		for (i = 1; i <= im_count(nebula_map); i++) {
+			nebula = im_find(nebula_map, i);
+			if (!nebula)
+				continue;
+			range = xyz2range(x, y, z, nebula->x, nebula->y, nebula->z) / PARSEC;
+			if (range > nebula->radius)
+				continue;
+			// If we get this far, we are inside a custom nebula. 
+			dx = (px - (nebula->x / PARSEC)) / (0.5 * nebula->radius);
+			dy = (py - (nebula->y / PARSEC)) / (0.5 * nebula->radius);
+			dz = (pz - (nebula->z / PARSEC)) / (0.5 * nebula->radius);
+			vis = 1.1 - (1.0 / (1.0 + dx * dx + dy * dy + dz * dz));
+			return ( vis > 1.0 ? 1.0 : vis < 0 ? 0.0 : vis);
+		}
+	} else if (aspace_config.nebula <= 1)  {
+		vis = 1.1 - (1.0 / (1.0 + dx * dx + dy * dy + dz * dz));
+		return ( vis > 1.0 ? 1.0 : vis < 0 ? 0.0 : vis);
+	}
+	return 1.0;
 }
-
 /* ------------------------------------------------------------------------ */
 
 double sdb2bearing (int n1, int n2)
@@ -187,16 +201,16 @@ double sdb2range (int n1, int n2)
 int sdb2arc (int n1, int n2)
 {
 	int firing_arc = 0;
-	double x = sdb[n2].coords.x - sdb[n1].coords.x;
-	double y = sdb[n2].coords.y - sdb[n1].coords.y;
-	double z = sdb[n2].coords.z - sdb[n1].coords.z;
+	double x = sdb[n2].coords.x - sdb[n1].coords.x - 0.1;
+	double y = sdb[n2].coords.y - sdb[n1].coords.y - 0.1;
+	double z = sdb[n2].coords.z - sdb[n1].coords.z - 0.1;
 	double r = sqrt(x * x + y * y + z * z);
 	double v1, v2, v3;
 	double forward_arc;
 	double starboard_arc;
 	double up_arc;
 
-	if (r == 0.0) {
+	if (r == 0.0) { // We should never get here, but just incase. Dividing by 0 explodes the universe.
 		firing_arc = 63;
 	} else {
 		v1 = (x * sdb[n1].course.d[0][0] + y * sdb[n1].course.d[0][1] +
@@ -249,11 +263,12 @@ int sdb2arc (int n1, int n2)
 
 int sdb2shield (int n1, int n2)
 {
-	double x = sdb[n2].coords.x - sdb[n1].coords.x;
-	double y = sdb[n2].coords.y - sdb[n1].coords.y;
-	double z = sdb[n2].coords.z - sdb[n1].coords.z;
+	double x = sdb[n2].coords.x - sdb[n1].coords.x - 0.1;
+	double y = sdb[n2].coords.y - sdb[n1].coords.y - 0.1;
+	double z = sdb[n2].coords.z - sdb[n1].coords.z - 0.1;
 	double r = sqrt(x * x + y * y + z * z);
 	double v1, v2, v3;
+	double fv1, fv2, fv3;
 	double forward_arc;
 	double starboard_arc;
 	double up_arc;
@@ -279,22 +294,21 @@ int sdb2shield (int n1, int n2)
 		v1 = (v1 > 1.0) ? 1.0 : (v1 < -1.0) ? -1.0 : v1;
 		v2 = (v2 > 1.0) ? 1.0 : (v2 < -1.0) ? -1.0 : v2;
 		v3 = (v3 > 1.0) ? 1.0 : (v3 < -1.0) ? -1.0 : v3;
-		forward_arc = acos(v1) * 180 / PI;
-		starboard_arc = acos(v2) * 180 / PI;
-		up_arc = acos(v3) * 180 / PI;
-
-		if (up_arc < 45.0) {
-			return 4;
-		} else if (up_arc > 135.0) {
-			return 5;
-		} else if (starboard_arc < 60.0) {
-			return 1;
-		} else if (starboard_arc > 120.0) {
-			return 3;
-		} else if (forward_arc > 90.0) {
-			return 2;
-		} else
+		fv1 = fabs(v1);
+		fv2 = fabs(v2);
+		fv3 = fabs(v3);
+		
+		if (fv1 >= 0.5 && fv1 > fv2 && fv1 > fv3)  // Forward and aft
+			return (v1 > 0.0 ? 0 : 2);
+		else if (fv2 >= 0.5 && fv2 > fv1 && fv2 > fv3) // Starboard and Port
+			return (v2 > 0.0 ? 1 : 3);
+		else if (fv3 >= 0.5 && fv3 > fv1 && fv3 > fv2) // Dorsal and Ventral
+			return (v3 > 0.0 ? 4 : 5);
+		else {
+			write_spacelog(sdb[n1].object, sdb[n2].object, "SDB2Shield(): Shield facing error.");
 			return 0;
+		}
+		
 	}
 }
 
@@ -576,17 +590,18 @@ double sdb2dissipation (int x, int shield)
 
 double xyz2cochranes (double x, double y, double z)
 {
+	double cochranes = atof(aspace_config.cochrane);
+	
 	double px = x / PARSEC;
 	double py = y / PARSEC;
 	double pz = z / PARSEC;
 	double r = (px * px + py * py) / 256000000.0 + (pz * pz) / 240000.0;
 
 	if (r < 1.0) {
-		return ((1.0 - r) / 0.671223 * cochrane) + 1.0;
+		return ((1.0 - r) / 0.671223 * cochranes) + 1.0;
 	} else
 		return 1.0;
 }
-
 /* ------------------------------------------------------------------------ */
 
 double sdb2angular (int n1, int n2)

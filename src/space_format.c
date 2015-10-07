@@ -787,7 +787,7 @@ char *format_l_Docked (int x)
 	int first = 1;
 
 	snprintf(buffer, sizeof(buffer),
-	  "%sDocked here:%s", ANSI_CYAN, ANSI_WHITE);
+	   "%sDocked here (%s): %s", ANSI_CYAN, sdb[x].status.open_docking ? "Open" : "Closed",  ANSI_WHITE);
 
 	for (i = 1 ; i <= max_space_objects ; ++i)
 		if (sdb[i].location == x)
@@ -815,7 +815,7 @@ char *format_l_Landed (int x)
 	int first = 1;
 
 	snprintf(buffer, sizeof(buffer),
-	  "%sLanded here:%s", ANSI_CYAN, ANSI_WHITE);
+	  "%sLanded here (%s):%s", ANSI_CYAN,  sdb[x].status.open_landing ? "Open" : "Closed", ANSI_WHITE);
 
 	for (i = 1 ; i <= max_space_objects ; ++i)
 		if (sdb[i].location == x)
@@ -1154,7 +1154,7 @@ char *format_s_EW (int x)
 
 char *format_s_Shield (int x)
 {
-	static char buffer[100 * MAX_SHIELD_NAME];
+	static char buffer[200 * MAX_SHIELD_NAME];
 	register int i;
 	double d;
 
